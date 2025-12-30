@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,25 +6,19 @@ datasource db {
   provider = "mysql"
 }
 
-// Role枚举：admin（完全权限）和viewer（只读权限）
-enum Role {
-  admin
-  viewer
-}
-
-// 用户表：存储admin和viewer两个用户
 model AuthUser {
-  id           BigInt        @id @default(autoincrement())
-  role         Role          @unique
-  passwordHash String        @map("password_hash") @db.VarChar(255)
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
-  sessions     AuthSession[]
+  id              BigInt        @id @default(autoincrement())
+  role            Role          @unique
+  passwordHash    String        @map("password_hash") @db.VarChar(255)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  sessions        AuthSession[]
+  authoredLetters Letter[]      @relation("AuthorLetters")
+  receivedLetters Letter[]      @relation("RecipientLetters")
 
   @@map("auth_users")
 }
 
-// 会话表：管理用户登录会话
 model AuthSession {
   id           BigInt   @id @default(autoincrement())
   sessionToken String   @unique @map("session_token") @db.VarChar(64)
@@ -43,17 +34,44 @@ model AuthSession {
   @@map("auth_sessions")
 }
 
-// 登录尝试记录表：用于防暴力破解
 model AuthLoginAttempt {
   id             BigInt    @id @default(autoincrement())
   ipAddress      String    @map("ip_address") @db.VarChar(45)
   failedAttempts Int       @default(0) @map("failed_attempts")
   lockedUntil    DateTime? @map("locked_until")
-  lastAttemptAt  DateTime  @default(now()) @map("last_attempt_at") @updatedAt
+  lastAttemptAt  DateTime  @default(now()) @updatedAt @map("last_attempt_at")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
   @@index([ipAddress])
   @@index([lockedUntil])
   @@map("auth_login_attempts")
+}
+
+enum Role {
+  admin
+  viewer
+}
+
+// 信件表：存储书信往来的核心内容
+model Letter {
+  id          BigInt    @id @default(autoincrement())
+  title       String?   @db.VarChar(255)
+  content     String    @db.Text
+  authorId    BigInt    @map("author_id")
+  recipientId BigInt    @map("recipient_id")
+  writtenAt   DateTime? @map("written_at")
+  isPublished Boolean   @default(true) @map("is_published")
+  tags        String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  author    AuthUser @relation("AuthorLetters", fields: [authorId], references: [id], onDelete: Cascade)
+  recipient AuthUser @relation("RecipientLetters", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([recipientId])
+  @@index([writtenAt])
+  @@index([isPublished])
+  @@map("letters")
 }
