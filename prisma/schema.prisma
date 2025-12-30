@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// Role枚举：admin（完全权限）和viewer（只读权限）
+enum Role {
+  admin
+  viewer
+}
+
+// 用户表：存储admin和viewer两个用户
+model AuthUser {
+  id           BigInt        @id @default(autoincrement())
+  role         Role          @unique
+  passwordHash String        @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  sessions     AuthSession[]
+
+  @@map("auth_users")
+}
+
+// 会话表：管理用户登录会话
+model AuthSession {
+  id           BigInt   @id @default(autoincrement())
+  sessionToken String   @unique @map("session_token") @db.VarChar(64)
+  userId       BigInt   @map("user_id")
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         AuthUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionToken])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+// 登录尝试记录表：用于防暴力破解
+model AuthLoginAttempt {
+  id             BigInt    @id @default(autoincrement())
+  ipAddress      String    @map("ip_address") @db.VarChar(45)
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+  lastAttemptAt  DateTime  @default(now()) @map("last_attempt_at") @updatedAt
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  @@index([ipAddress])
+  @@index([lockedUntil])
+  @@map("auth_login_attempts")
+}

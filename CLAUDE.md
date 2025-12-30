@@ -11,11 +11,20 @@
 
 ## 技术栈
 
-- **前端框架**: React 18+ with Next.js (App Router)
+### 核心框架
+- **前端框架**: React 19+ with Next.js 16 (App Router)
 - **渲染模式**: React Server Components (RSC)
-- **数据库**: MySQL
-- **样式方案**: Tailwind CSS
-- **语言**: TypeScript
+- **语言**: TypeScript 5+
+- **样式方案**: Tailwind CSS v4
+
+### 数据层
+- **数据库**: MySQL (MariaDB)
+- **ORM**: Prisma
+- **数据库适配器**: @prisma/adapter-mariadb
+
+### 认证与安全
+- **会话管理**: iron-session
+- **密码加密**: bcryptjs
 
 ## 开发规范与约束
 
@@ -42,19 +51,32 @@
 
 ### 3. 数据库设计原则
 
-#### 表设计规范
-- 使用有意义的表名和字段名（中英文均可，但保持一致性）
-- 所有表必须包含：
-  - `id`: 主键 (BIGINT AUTO_INCREMENT)
-  - `created_at`: 创建时间 (TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
-  - `updated_at`: 更新时间 (TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)
-- 合理设置索引以优化查询性能
-- 使用适当的数据类型，节省存储空间
+#### Prisma Schema 规范
+- **模型命名**: 使用 PascalCase (如 `AuthUser`, `AuthSession`)
+- **字段命名**: 使用 camelCase (如 `createdAt`, `passwordHash`)
+- **数据库映射**: 使用 `@map` 将字段映射为 snake_case (如 `@map("created_at")`)
+- **表名映射**: 使用 `@@map` 定义表名 (如 `@@map("auth_users")`)
+
+#### 必需字段规范
+所有模型必须包含：
+- `id`: 主键 `BigInt @id @default(autoincrement())`
+- `createdAt`: 创建时间 `DateTime @default(now()) @map("created_at")`
+- `updatedAt`: 更新时间 `DateTime @updatedAt @map("updated_at")`
+
+#### 索引优化
+- 为频繁查询的字段添加索引 `@@index([fieldName])`
+- 唯一约束使用 `@unique`
+- 外键关系使用 `@relation` 并设置适当的 `onDelete` 行为
+
+#### 类型使用
+- 字符串长度限制: `@db.VarChar(255)`
+- 大文本: `@db.Text`
+- 枚举类型: 使用 Prisma `enum`
 
 #### 数据安全
-- 敏感信息加密存储
-- 实施数据备份策略
-- 防止 SQL 注入，使用参数化查询
+- 敏感信息加密存储（密码使用 bcryptjs）
+- 使用 Prisma 的参数化查询（自动防止 SQL 注入）
+- 配置合适的级联删除策略
 
 ### 4. UI/UX 设计原则
 
@@ -74,17 +96,32 @@
 
 #### 开发流程
 1. **需求确认**: 明确功能需求和用户体验目标
-2. **数据库设计**: 设计或调整相关数据表结构
-3. **API 设计**: 定义清晰的数据接口
-4. **组件开发**: 遵循 RSC 最佳实践开发组件
-5. **测试验证**: 确保功能正常且体验良好
+2. **数据库设计**: 在 `prisma/schema.prisma` 中设计或调整模型
+3. **数据库迁移**: 使用 `npx prisma migrate dev` 创建迁移
+4. **类型生成**: 运行 `npx prisma generate` 生成 TypeScript 类型
+5. **API 设计**: 在 `app/api/` 中创建 API 路由
+6. **组件开发**: 遵循 RSC 最佳实践开发组件
+7. **测试验证**: 确保功能正常且体验良好
+
+#### Prisma 使用规范
+- **数据库连接**: 统一使用 `lib/db.ts` 中的 Prisma Client 实例
+- **查询优化**: 使用 `select` 和 `include` 精确控制返回字段
+- **事务处理**: 需要多步操作时使用 `prisma.$transaction`
+- **错误处理**: 妥善处理 Prisma 错误（如 P2002 唯一约束冲突）
+- **迁移管理**:
+  - 开发环境: `npx prisma migrate dev`
+  - 生产环境: `npx prisma migrate deploy`
 
 ### 6. 性能优化
 
 - **图片优化**: 使用 Next.js Image 组件，自动优化图片
 - **代码分割**: 合理使用动态导入减小初始 bundle
 - **缓存策略**: 利用 Next.js 缓存机制提升性能
-- **数据库查询优化**: 避免 N+1 查询，使用合适的索引
+- **数据库查询优化**:
+  - 避免 N+1 查询，使用 Prisma 的 `include` 预加载关联数据
+  - 使用索引优化频繁查询的字段
+  - 只查询需要的字段，使用 `select` 减少数据传输
+  - 对于复杂查询考虑使用 Prisma 的原生 SQL
 
 ### 7. 安全与隐私
 
@@ -98,18 +135,27 @@
 ```
 letter-box/
 ├── app/                    # Next.js App Router
-│   ├── (routes)/          # 路由页面
 │   ├── api/               # API 路由
-│   └── components/        # 页面级组件
-├── components/            # 可复用组件
+│   │   └── auth/          # 认证相关 API
+│   ├── globals.css        # 全局样式
+│   ├── layout.tsx         # 根布局
+│   └── page.tsx           # 首页
+├── components/            # 可复用组件（按需创建）
 │   ├── ui/               # UI 基础组件
 │   └── features/         # 功能组件
 ├── lib/                   # 工具库
-│   ├── db/               # 数据库相关
-│   ├── utils/            # 工具函数
-│   └── types/            # TypeScript 类型定义
-├── public/               # 静态资源
-└── styles/               # 全局样式
+│   ├── auth/             # 认证相关工具
+│   │   ├── session.ts    # 会话管理
+│   │   ├── password.ts   # 密码处理
+│   │   └── types.ts      # 类型定义
+│   └── db.ts             # 数据库连接配置
+├── prisma/                # Prisma ORM 配置
+│   ├── schema.prisma     # 数据库 Schema
+│   └── migrations/       # 数据库迁移文件
+├── scripts/               # 脚本工具
+│   └── seed-users.ts     # 数据库种子脚本
+├── public/                # 静态资源
+└── [配置文件]            # tsconfig, next.config 等
 ```
 
 ## 开发原则
@@ -134,5 +180,5 @@ letter-box/
 
 ---
 
-**最后更新**: 2025-12-29
+**最后更新**: 2025-12-30
 **维护者**: 崔昌赫

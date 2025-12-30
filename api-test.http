@@ -1,0 +1,141 @@
+### Letter Box API 测试文件
+### 使用 REST Client 插件运行这些请求
+
+# 设置环境变量
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+###############################################
+# 认证相关 API
+###############################################
+
+### 1. 登录 (Admin)
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "password": "your-password-here"
+}
+
+###
+
+### 2. 获取当前用户信息
+# @name getCurrentUser
+GET {{baseUrl}}/api/auth/me
+
+###
+
+### 3. 修改密码
+# @name changePassword
+PUT {{baseUrl}}/api/auth/change-password
+Content-Type: {{contentType}}
+
+{
+  "currentPassword": "current-password-here",
+  "newPassword": "new-password-here"
+}
+
+###
+
+### 4. 登出
+# @name logout
+POST {{baseUrl}}/api/auth/logout
+
+###
+
+###############################################
+# 测试场景
+###############################################
+
+### 场景1: 登录失败 - 缺少密码
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+}
+
+###
+
+### 场景2: 登录失败 - 错误密码
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "password": "wrong-password"
+}
+
+###
+
+### 场景3: 修改密码失败 - 缺少参数
+PUT {{baseUrl}}/api/auth/change-password
+Content-Type: {{contentType}}
+
+{
+  "currentPassword": "test"
+}
+
+###
+
+### 场景4: 修改密码失败 - 密码强度不足
+PUT {{baseUrl}}/api/auth/change-password
+Content-Type: {{contentType}}
+
+{
+  "currentPassword": "current-password-here",
+  "newPassword": "123"
+}
+
+###
+
+### 场景5: 重复登出 - 应返回 UNAUTHORIZED
+# 先确保已登录（执行上面的登录请求），再连续调用两次登出
+POST {{baseUrl}}/api/auth/logout
+
+###
+
+POST {{baseUrl}}/api/auth/logout
+
+###
+
+###############################################
+# 完整流程测试
+###############################################
+
+### 流程: 登录 -> 获取用户信息 -> 修改密码 -> 登出
+
+# 步骤1: 登录
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "password": "your-password-here"
+}
+
+###
+
+# 步骤2: 验证登录状态
+GET {{baseUrl}}/api/auth/me
+
+###
+
+# 步骤3: 修改密码（可选）
+# PUT {{baseUrl}}/api/auth/change-password
+# Content-Type: {{contentType}}
+#
+# {
+#   "currentPassword": "your-password-here",
+#   "newPassword": "your-new-password-here"
+# }
+
+###
+
+# 步骤4: 登出
+POST {{baseUrl}}/api/auth/logout
+
+###
+
+# 步骤5: 验证已登出
+GET {{baseUrl}}/api/auth/me
+
+###
