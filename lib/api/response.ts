@@ -18,12 +18,53 @@ export type ApiResponse<TSuccessData, TErrorData = null> =
   | ApiSuccessResponse<TSuccessData>
   | ApiErrorResponse<TErrorData>;
 
+function toJsonSafe(value: unknown, seen?: WeakSet<object>): unknown {
+  if (typeof value === 'bigint') {
+    return value.toString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toJsonSafe(item, seen));
+  }
+
+  if (value && typeof value === 'object') {
+    if (value instanceof Date) {
+      return value;
+    }
+
+    // 如果对象本身具备 toJSON（例如 Date/Decimal），交给 JSON 序列化流程处理
+    const maybeToJson = (value as { toJSON?: unknown }).toJSON;
+    if (typeof maybeToJson === 'function') {
+      return value;
+    }
+
+    const visited = seen ?? new WeakSet<object>();
+    if (visited.has(value)) {
+      throw new TypeError('Cannot serialize circular structure to JSON');
+    }
+    visited.add(value);
+
+    const result: Record<string, unknown> = {};
+    for (const [key, nested] of Object.entries(value)) {
+      result[key] = toJsonSafe(nested, visited);
+    }
+    return result;
+  }
+
+  return value;
+}
+
 export function apiOk<TData>(
   data: TData,
   init?: ResponseInit
 ): NextResponse<ApiSuccessResponse<TData>> {
   return NextResponse.json(
-    { success: true, data, error: null, message: null },
+    {
+      success: true,
+      data: toJsonSafe(data) as TData,
+      error: null,
+      message: null,
+    },
     init
   );
 }
@@ -42,7 +83,7 @@ export function apiError<TData = null>(
   return NextResponse.json(
     {
       success: false,
-      data: (data ?? null) as TData,
+      data: toJsonSafe((data ?? null) as TData) as TData,
       error,
       message: message ?? null,
     },

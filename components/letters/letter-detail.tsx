@@ -1,5 +1,6 @@
 import { MarkdownRenderer } from './markdown-renderer';
 import type { LetterWithUsers } from '@/lib/types/letter';
+import { formatDate, formatDateWithWeekday } from '@/lib/utils';
 
 interface LetterDetailProps {
   letter: LetterWithUsers;
@@ -10,21 +11,9 @@ interface LetterDetailProps {
  * Server Component - 展示完整的信件内容
  */
 export function LetterDetail({ letter }: LetterDetailProps) {
-  // 格式化日期
-  const formatDate = (date: Date | null) => {
-    if (!date) return '未知日期';
-    return new Date(date).toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long',
-    });
-  };
-
-  // 角色显示名称
-  const getRoleName = (role: string) => {
-    return role === 'admin' ? '你' : 'Ta';
-  };
+  const writtenDate = letter.writtenAt
+    ? formatDateWithWeekday(letter.writtenAt)
+    : '未知日期';
 
   // 解析标签
   const tags = letter.tags
@@ -54,14 +43,14 @@ export function LetterDetail({ letter }: LetterDetailProps) {
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">发信人：</span>
             <span className="text-rose-600 font-semibold">
-              {getRoleName(letter.author.role)}
+              {letter.author.name}
             </span>
           </div>
           <span className="text-gray-300">•</span>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">收信人：</span>
             <span className="text-rose-600 font-semibold">
-              {getRoleName(letter.recipient.role)}
+              {letter.recipient.name}
             </span>
           </div>
           <span className="text-gray-300">•</span>
@@ -69,7 +58,7 @@ export function LetterDetail({ letter }: LetterDetailProps) {
             dateTime={letter.writtenAt?.toISOString()}
             className="text-sm"
           >
-            {formatDate(letter.writtenAt)}
+            {writtenDate}
           </time>
         </div>
 
@@ -98,20 +87,12 @@ export function LetterDetail({ letter }: LetterDetailProps) {
         <div className="flex justify-between items-center">
           <div>
             创建于{' '}
-            {new Date(letter.createdAt).toLocaleDateString('zh-CN', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
+            {formatDate(letter.createdAt)}
           </div>
           {letter.updatedAt.getTime() !== letter.createdAt.getTime() && (
             <div>
               最后编辑于{' '}
-              {new Date(letter.updatedAt).toLocaleDateString('zh-CN', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
+              {formatDate(letter.updatedAt)}
             </div>
           )}
         </div>

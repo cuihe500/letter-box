@@ -72,10 +72,10 @@ export const GET = compose(
         where,
         include: {
           author: {
-            select: { id: true, role: true },
+            select: { id: true, role: true, name: true },
           },
           recipient: {
-            select: { id: true, role: true },
+            select: { id: true, role: true, name: true },
           },
         },
         orderBy: { [orderBy]: orderDirection },
@@ -138,10 +138,10 @@ export const POST = compose(
       },
       include: {
         author: {
-          select: { id: true, role: true },
+          select: { id: true, role: true, name: true },
         },
         recipient: {
-          select: { id: true, role: true },
+          select: { id: true, role: true, name: true },
         },
       },
     });

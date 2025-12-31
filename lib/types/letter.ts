@@ -4,8 +4,8 @@ import type { Letter, AuthUser } from '@prisma/client';
  * 信件列表项类型（包含作者和收件人信息）
  */
 export type LetterWithUsers = Letter & {
-  author: Pick<AuthUser, 'id' | 'role'>;
-  recipient: Pick<AuthUser, 'id' | 'role'>;
+  author: Pick<AuthUser, 'id' | 'role' | 'name'>;
+  recipient: Pick<AuthUser, 'id' | 'role' | 'name'>;
 };
 
 /**

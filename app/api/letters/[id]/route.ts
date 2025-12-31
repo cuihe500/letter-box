@@ -37,10 +37,10 @@ export const GET = compose(
       where: { id: letterId },
       include: {
         author: {
-          select: { id: true, role: true },
+          select: { id: true, role: true, name: true },
         },
         recipient: {
-          select: { id: true, role: true },
+          select: { id: true, role: true, name: true },
         },
       },
     });
@@ -113,10 +113,10 @@ export const PUT = compose(
       data: updateData,
       include: {
         author: {
-          select: { id: true, role: true },
+          select: { id: true, role: true, name: true },
         },
         recipient: {
-          select: { id: true, role: true },
+          select: { id: true, role: true, name: true },
         },
       },
     });

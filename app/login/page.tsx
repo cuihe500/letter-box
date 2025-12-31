@@ -3,9 +3,9 @@ import { requireAuth } from '@/lib/auth/session';
 import { LoginForm } from '@/components/auth/login-form';
 
 type LoginPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     next?: string | string[];
-  };
+  }>;
 };
 
 function getSafeNextPath(nextParam: string | string[] | undefined): string {
@@ -17,7 +17,7 @@ function getSafeNextPath(nextParam: string | string[] | undefined): string {
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const nextPath = getSafeNextPath(searchParams?.next);
+  const nextPath = getSafeNextPath((await searchParams)?.next);
 
   try {
     await requireAuth();
@@ -55,10 +55,10 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               </svg>
             </div>
             <h1 className="text-2xl font-semibold tracking-tight text-gray-900">
-              欢迎回来
+              欢迎来到小邮局
             </h1>
             <p className="mt-2 text-sm leading-6 text-gray-500">
-              登陆后即可进入只属于你们的信箱。
+              请输入密码查阅信件
             </p>
           </div>
 
@@ -72,4 +72,3 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     </div>
   );
 }
-

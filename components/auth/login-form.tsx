@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ApiResponse } from '@/lib/api/response';
 import type { UserRole } from '@/lib/auth/types';
+import { formatDateTime } from '@/lib/utils';
 
 type LoginSuccessData = { role: UserRole };
 type LoginErrorData = {
@@ -21,13 +22,7 @@ function getSafeNextPath(nextPath: string | undefined): string {
 function formatLockedUntil(isoString: string): string {
   const date = new Date(isoString);
   if (Number.isNaN(date.getTime())) return isoString;
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatDateTime(date);
 }
 
 export function LoginForm({ nextPath }: { nextPath?: string }) {
@@ -152,7 +147,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
             onChange={(e) => setPassword(e.target.value)}
             disabled={isSubmitting}
             className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 pr-12 text-gray-900 shadow-sm outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-100 disabled:cursor-not-allowed disabled:bg-gray-50"
-            placeholder="输入管理员或访客密码"
+            placeholder="请输入密码"
           />
           <button
             type="button"
@@ -165,7 +160,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
           </button>
         </div>
         <p className="text-xs leading-5 text-gray-500">
-          输入后系统会自动识别身份（管理员/访客）。
+          输入后系统会自动识别身份。
         </p>
       </div>
 
@@ -179,4 +174,3 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
     </form>
   );
 }
-

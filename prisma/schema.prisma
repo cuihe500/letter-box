@@ -9,6 +9,7 @@ datasource db {
 model AuthUser {
   id              BigInt        @id @default(autoincrement())
   role            Role          @unique
+  name            String        @db.VarChar(50)
   passwordHash    String        @map("password_hash") @db.VarChar(255)
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")

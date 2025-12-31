@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { LetterWithUsers } from '@/lib/types/letter';
+import { formatDate } from '@/lib/utils';
 
 interface LetterCardProps {
   letter: LetterWithUsers;
@@ -10,15 +11,8 @@ interface LetterCardProps {
  * Server Component - 在信件列表中展示单封信件的摘要信息
  */
 export function LetterCard({ letter }: LetterCardProps) {
-  // 格式化日期
-  const formatDate = (date: Date | null) => {
-    if (!date) return '未知日期';
-    return new Date(date).toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
+  const formatOptionalDate = (date: Date | null) =>
+    date ? formatDate(date) : '未知日期';
 
   // 提取内容摘要（去除Markdown标记，取前150字）
   const getExcerpt = (content: string, maxLength = 150) => {
@@ -34,11 +28,6 @@ export function LetterCard({ letter }: LetterCardProps) {
     return plain.length > maxLength
       ? plain.substring(0, maxLength) + '...'
       : plain;
-  };
-
-  // 角色显示名称
-  const getRoleName = (role: string) => {
-    return role === 'admin' ? '你' : 'Ta';
   };
 
   // 解析标签
@@ -57,11 +46,11 @@ export function LetterCard({ letter }: LetterCardProps) {
         {/* 元信息 */}
         <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
           <span>
-            {getRoleName(letter.author.role)} → {getRoleName(letter.recipient.role)}
+            {letter.author.name} → {letter.recipient.name}
           </span>
           <span>•</span>
           <time dateTime={letter.writtenAt?.toISOString()}>
-            {formatDate(letter.writtenAt)}
+            {formatOptionalDate(letter.writtenAt)}
           </time>
           {!letter.isPublished && (
             <>

@@ -2,12 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MarkdownRenderer } from './markdown-renderer';
+import dynamic from 'next/dynamic';
 import type { LetterWithUsers } from '@/lib/types/letter';
+import { formatDateInputValue } from '@/lib/utils';
+
+// 动态导入 MDEditor，避免 SSR 问题
+const MDEditor = dynamic(
+  () => import('@uiw/react-md-editor'),
+  { ssr: false }
+);
 
 interface LetterFormProps {
   letter?: LetterWithUsers;
-  recipientId: bigint;
+  recipients: Array<{ id: bigint; role: string; name: string }>;
+  currentUserId?: bigint;
   onSuccess?: () => void;
   onCancel?: () => void;
 }
@@ -18,22 +26,22 @@ interface LetterFormProps {
  */
 export function LetterForm({
   letter,
-  recipientId,
+  recipients,
   onSuccess,
   onCancel,
 }: LetterFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
 
   // 表单状态
   const [formData, setFormData] = useState({
     title: letter?.title || '',
     content: letter?.content || '',
+    recipientId: letter?.recipientId.toString() || '',
     writtenAt: letter?.writtenAt
-      ? new Date(letter.writtenAt).toISOString().split('T')[0]
-      : new Date().toISOString().split('T')[0],
+      ? formatDateInputValue(new Date(letter.writtenAt))
+      : formatDateInputValue(new Date()),
     isPublished: letter?.isPublished ?? true,
     tags: letter?.tags || '',
   });
@@ -54,7 +62,7 @@ export function LetterForm({
         },
         body: JSON.stringify({
           ...formData,
-          recipientId: recipientId.toString(),
+          recipientId: formData.recipientId,
           writtenAt: formData.writtenAt
             ? new Date(formData.writtenAt).toISOString()
             : undefined,
@@ -79,6 +87,7 @@ export function LetterForm({
       setIsSubmitting(false);
     }
   };
+
 
   return (
     <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
@@ -108,6 +117,32 @@ export function LetterForm({
           placeholder="给这封信起个标题吧"
           maxLength={255}
         />
+      </div>
+
+      {/* 收件人选择 */}
+      <div>
+        <label
+          htmlFor="recipientId"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          收件人
+        </label>
+        <select
+          id="recipientId"
+          value={formData.recipientId}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, recipientId: e.target.value }))
+          }
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+          required
+        >
+          <option value="">请选择收件人</option>
+          {recipients.map((user) => (
+            <option key={user.id.toString()} value={user.id.toString()}>
+              {user.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* 写信日期 */}
@@ -150,40 +185,25 @@ export function LetterForm({
         />
       </div>
 
-      {/* 内容编辑/预览切换 */}
-      <div>
-        <div className="flex justify-between items-center mb-2">
-          <label
-            htmlFor="content"
-            className="block text-sm font-medium text-gray-700"
-          >
-            信件内容（支持 Markdown 格式）
-          </label>
-          <button
-            type="button"
-            onClick={() => setShowPreview(!showPreview)}
-            className="text-sm text-rose-600 hover:text-rose-700 font-medium"
-          >
-            {showPreview ? '编辑' : '预览'}
-          </button>
-        </div>
-
-        {showPreview ? (
-          <div className="min-h-[400px] border border-gray-300 rounded-lg p-4 bg-gradient-to-br from-white to-rose-50/30">
-            <MarkdownRenderer content={formData.content} />
-          </div>
-        ) : (
-          <textarea
-            id="content"
-            value={formData.content}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, content: e.target.value }))
-            }
-            className="w-full min-h-[400px] px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent font-mono text-sm"
-            placeholder="在这里写下你的心里话...&#10;&#10;支持 Markdown 格式：&#10;- **粗体** 和 *斜体*&#10;- [链接](url)&#10;- 列表、引用等"
-            required
-          />
-        )}
+      {/* 内容编辑器 */}
+      <div data-color-mode="light">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          信件内容（支持 Markdown 格式）
+        </label>
+        <MDEditor
+          value={formData.content}
+          onChange={(value) =>
+            setFormData((prev) => ({ ...prev, content: value || '' }))
+          }
+          height={500}
+          preview="live"
+          hideToolbar={false}
+          enableScroll={true}
+          textareaProps={{
+            placeholder: '在这里写下你的心里话...\n\n支持 Markdown 格式：\n- **粗体** 和 *斜体*\n- [链接](url)\n- 列表、引用等',
+            required: true,
+          }}
+        />
       </div>
 
       {/* 发布状态 */}
@@ -206,7 +226,7 @@ export function LetterForm({
       <div className="flex gap-4 pt-4">
         <button
           type="submit"
-          disabled={isSubmitting || !formData.content.trim()}
+          disabled={isSubmitting || !formData.content.trim() || !formData.recipientId}
           className="flex-1 bg-rose-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
         >
           {isSubmitting
